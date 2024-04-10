@@ -7,6 +7,7 @@ from telebot import types
 BOT = telebot.TeleBot(f'{text.BOT_TOKEN}')
 
 #обработка комманд --------------------------------------------------------------
+#обработка комманд --------------------------------------------------------------
 @BOT.message_handler(commands = ['start'])
 def start(message):
     # кнопки интерфейса
@@ -16,8 +17,11 @@ def start(message):
     btn3 = types.KeyboardButton(f'{text.question_all}')
     btn4 = types.KeyboardButton(f'{text.question_my}')
     btn5 = types.KeyboardButton(f'{text.author_card}')
+    btn4 = types.KeyboardButton(f'{text.question_my}')
+    btn5 = types.KeyboardButton(f'{text.author_card}')
     Markup.row(btn1)
     Markup.row(btn2,btn3)
+    Markup.row(btn4,btn5)
     Markup.row(btn4,btn5)
 
     # обработка данных пользователя для регистрации
@@ -48,6 +52,7 @@ def start(message):
 
     # внесение нового пользователя
     cur.execute("INSERT OR IGNORE INTO Users(user_id, name) VALUES ('%s','%s')" % (message.from_user.username,name))
+    cur.execute("INSERT OR IGNORE INTO Users(user_id, name) VALUES ('%s','%s')" % (message.from_user.username,name))
     conn.commit()
 
     # закрытие подключения к бд
@@ -57,6 +62,7 @@ def start(message):
     BOT.send_message(message.chat.id, 'Регистрация в системе завершена!')
     BOT.send_message(message.chat.id, f'Здравствуйте, {first_name}', reply_markup=Markup)
 
+# обработка сообщений --------------------------------------------------------------
 # обработка сообщений --------------------------------------------------------------
 @BOT.message_handler()
 def info(message):
@@ -69,8 +75,11 @@ def info(message):
             btn3 = types.KeyboardButton(f'{text.question_all}')
             btn4 = types.KeyboardButton(f'{text.question_my}')
             btn5 = types.KeyboardButton(f'{text.author_card}')
+            btn4 = types.KeyboardButton(f'{text.question_my}')
+            btn5 = types.KeyboardButton(f'{text.author_card}')
             Markup.row(btn1)
             Markup.row(btn2,btn3)
+            Markup.row(btn4,btn5)
             Markup.row(btn4,btn5)
 
             BOT.send_message(message.chat.id,f'Здравствуйте, {message.from_user.first_name}', reply_markup=Markup)
@@ -88,7 +97,21 @@ def info(message):
             Markup = types.InlineKeyboardMarkup()
             sbtn1 = types.InlineKeyboardButton(f'{text.answer_add}',callback_data='answer_add')
             sbtn2 = types.InlineKeyboardButton(f'{text.answers_list}',callback_data='answers_list')
+            sbtn1 = types.InlineKeyboardButton(f'{text.answer_add}',callback_data='answer_add')
+            sbtn2 = types.InlineKeyboardButton(f'{text.answers_list}',callback_data='answers_list')
             Markup.row(sbtn1,sbtn2)
+
+            # подключение к бд
+            conn = sqlite3.connect(f'{text.DB_NAME}')
+            cur = conn.cursor()
+
+            # получение данных пользователя
+            cur.execute("SELECT * FROM Questions WHERE active = '1'")
+            questions_data = cur.fetchall()
+
+            # закрытие подключения к бд
+            cur.close()
+            conn.close()
 
             # подключение к бд
             conn = sqlite3.connect(f'{text.DB_NAME}')
@@ -105,7 +128,46 @@ def info(message):
             BOT.send_message(message.chat.id,'<b>Список активных запросов:</b>',parse_mode='html')
             for item in questions_data:
                 BOT.send_message(message.chat.id,item[3], reply_markup=Markup)
+            for item in questions_data:
+                BOT.send_message(message.chat.id,item[3], reply_markup=Markup)
         case 'все запросы':
+            # кнопки сообщения (активный вопрос)
+            MarkupActive = types.InlineKeyboardMarkup()
+            sbtn1 = types.InlineKeyboardButton(f'{text.answer_add}',callback_data='answer_add')
+            sbtn2 = types.InlineKeyboardButton(f'{text.answers_list}',callback_data='answers_list')
+            MarkupActive.row(sbtn1,sbtn2)
+
+            # кнопки сообщения (неактивный вопрос)
+            Markup = types.InlineKeyboardMarkup()
+            sbtn1 = types.InlineKeyboardButton(f'{text.answers_list}',callback_data='answers_list')
+            Markup.row(sbtn1)
+
+            # подключение к бд
+            conn = sqlite3.connect(f'{text.DB_NAME}')
+            cur = conn.cursor()
+
+            # получение данных пользователя
+            cur.execute("SELECT * FROM Questions")
+            questions_data = cur.fetchall()
+
+            # закрытие подключения к бд
+            cur.close()
+            conn.close()
+
+            BOT.send_message(message.chat.id,'<b>Полный список запросов:</b>',parse_mode='html')
+            for item in questions_data:
+                if(item[4]):
+                    BOT.send_message(message.chat.id,item[3], reply_markup=MarkupActive)
+                else:
+                    BOT.send_message(message.chat.id,item[3], reply_markup=Markup)
+        case 'мои запросы':
+            # кнопки сообщения (активный вопрос)
+            MarkupActive = types.InlineKeyboardMarkup()
+            sbtn1 = types.InlineKeyboardButton(f'{text.question_close}',callback_data='question_close')
+            sbtn2 = types.InlineKeyboardButton(f'{text.answers_list}',callback_data='answers_list')
+            MarkupActive.row(sbtn1,sbtn2)
+
+            # кнопки сообщения (неактивный вопрос)
             # кнопки сообщения (активный вопрос)
             MarkupActive = types.InlineKeyboardMarkup()
             sbtn1 = types.InlineKeyboardButton(f'{text.answer_add}',callback_data='answer_add')
@@ -158,8 +220,27 @@ def info(message):
             # закрытие подключения к бд
             cur.close()
             conn.close()
+            sbtn1 = types.InlineKeyboardButton(f'{text.answers_list}',callback_data='answers_list')
+            Markup.row(sbtn1)
+
+            # подключение к бд
+            conn = sqlite3.connect(f'{text.DB_NAME}')
+            cur = conn.cursor()
+
+            # получение данных пользователя
+            cur.execute("SELECT * FROM Questions WHERE user_id = '%s'" % (message.from_user.username))
+            questions_data = cur.fetchall()
+
+            # закрытие подключения к бд
+            cur.close()
+            conn.close()
 
             BOT.send_message(message.chat.id,'<b>Полный список запросов:</b>',parse_mode='html')
+            for item in questions_data:
+                if(item[4]):
+                    BOT.send_message(message.chat.id,item[3], reply_markup=MarkupActive)
+                else:
+                    BOT.send_message(message.chat.id,item[3], reply_markup=Markup)
             for item in questions_data:
                 if(item[4]):
                     BOT.send_message(message.chat.id,item[3], reply_markup=MarkupActive)
@@ -170,6 +251,8 @@ def info(message):
             Markup = types.InlineKeyboardMarkup()
             sbtn1 = types.InlineKeyboardButton(f'{text.contact_add}',callback_data='contact_add')
             sbtn2 = types.InlineKeyboardButton(f'{text.contact_del}',callback_data='contact_del')
+            sbtn1 = types.InlineKeyboardButton(f'{text.contact_add}',callback_data='contact_add')
+            sbtn2 = types.InlineKeyboardButton(f'{text.contact_del}',callback_data='contact_del')
             Markup.row(sbtn1,sbtn2)
 
             # подключение к бд
@@ -178,7 +261,12 @@ def info(message):
 
             # получение данных пользователя
             cur.execute("SELECT * FROM Users WHERE user_id = '%s'" %  (message.from_user.username))
+            cur.execute("SELECT * FROM Users WHERE user_id = '%s'" %  (message.from_user.username))
             user_data = cur.fetchall()[0]
+
+            # получение количества вопросов пользователя
+            cur.execute("SELECT * FROM Questions WHERE user_id = '%s'" %  (message.from_user.username))
+            questions_count = len(cur.fetchall())
 
             # получение количества вопросов пользователя
             cur.execute("SELECT * FROM Questions WHERE user_id = '%s'" %  (message.from_user.username))
@@ -190,6 +278,7 @@ def info(message):
 
             BOT.send_message(message.chat.id,'<b>Изменение данных автора:</b>',parse_mode='html')
             BOT.send_message(message.chat.id,f'<b>Имя:</b> {user_data[1]}\n<b>Кол-во вопросов:</b> {questions_count}\n<b>Кол-во ответов:</b> сделать',parse_mode='html', reply_markup=Markup)
+            BOT.send_message(message.chat.id,f'<b>Имя:</b> {user_data[1]}\n<b>Кол-во вопросов:</b> {questions_count}\n<b>Кол-во ответов:</b> сделать',parse_mode='html', reply_markup=Markup)
             
         #временная комманда для тестирования
         case 'тест бд':
@@ -198,6 +287,7 @@ def info(message):
             cur = conn.cursor()
 
             # комманда для теста
+            cur.execute("INSERT OR IGNORE INTO Questions(user_id, tag_id, data,active) VALUES ('%s','1','%s','0')" % (message.from_user.username,message.text))
             cur.execute("INSERT OR IGNORE INTO Questions(user_id, tag_id, data,active) VALUES ('%s','1','%s','0')" % (message.from_user.username,message.text))
             conn.commit()
 
@@ -211,11 +301,14 @@ def info(message):
     
 
 # обработка кнопок сообщения --------------------------------------------------------------
+# обработка кнопок сообщения --------------------------------------------------------------
 @BOT.callback_query_handler(func=lambda callback: True)
 def callback_message(callback):
     match callback.data:
         case 'answer_add':
+        case 'answer_add':
             BOT.send_message(callback.message.chat.id,'Типа написал ответ')
+        case 'answers_list':
         case 'answers_list':
             BOT.send_message(callback.message.chat.id,'Список ответов:')
             BOT.send_message(callback.message.chat.id,'Типа ответы')
@@ -290,4 +383,5 @@ def question_new(message):
     BOT.send_message(message.chat.id,'Вопрос создан')
 
 # бесконечный перезапуск скрипта
+BOT.infinity_polling()
 BOT.infinity_polling()
