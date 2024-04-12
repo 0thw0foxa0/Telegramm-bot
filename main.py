@@ -8,7 +8,6 @@ BOT = telebot.TeleBot(f'{text.BOT_TOKEN}')
 
 # Глобальные переменные
 selected_tag = None
-usid = None
 quesid = None
 
 
@@ -229,21 +228,29 @@ def callback_message(callback):
             BOT.send_message(callback.message.chat.id,"Введите ваш ответ:")
             BOT.register_next_step_handler(callback.message,new_answer)
         case 'answers_list':
+            
             # подключение к бд
             conn = sqlite3.connect(f'{text.DB_NAME}')
             cur = conn.cursor()
+            try:
+            
+                cur.execute("SELECT id FROM Questions WHERE data = '%s'" %  (callback.message.text))
+                quesid = cur.fetchall()[0]
 
-
-            cur.execute("SELECT id FROM Questions WHERE data = '%s'" %  (callback.message.text))
-            global quesid
-            quesid = cur.fetchall()[0]
-
+                # получение данных пользователя
+                cur.execute("SELECT * FROM Answers WHERE question_id = '%s'" % (quesid[0]))
+                print(quesid)
+                answ_data = cur.fetchall()
+            
+                
+                for item in answ_data:
+                    BOT.send_message(callback.message.chat.id,item[3])
+            except ValueError:
+                BOT.send_message(callback.message.chat.id,f'{text.error}')
 
              # закрытие подключения к бд
             cur.close()
             conn.close()
-            BOT.send_message(callback.message.chat.id,f'{text.answers_list}:')
-            BOT.send_message(callback.message.chat.id,'Типа ответы')
         case 'tag_new':
             BOT.send_message(callback.message.chat.id,f'<b>{text.tag_name}</b>',parse_mode='html')
             BOT.register_next_step_handler(callback.message,tag_new)
@@ -287,7 +294,22 @@ def callback_message(callback):
             
             BOT.register_next_step_handler(callback.message,question_new)
         case 'question_close':
-            BOT.send_message(callback.message.chat.id,'Вопрос закрыт (нет)')
+             # подключение к бд
+            conn = sqlite3.connect(f'{text.DB_NAME}')
+            cur = conn.cursor()
+             # получение данных вопроса
+            print
+            cur.execute("SELECT id FROM Questions WHERE data = '%s'" %  (callback.message.text))
+            
+            quesid = cur.fetchall()[0]
+
+
+            cur.execute("UPDATE Questions SET active=0 WHERE id =('%s')" %(quesid[0]))
+            conn.commit()
+            # закрытие подключения к бд
+            cur.close()
+            conn.close()
+            BOT.send_message(callback.message.chat.id,'Вопрос закрыт')
         case _:
             BOT.send_message(callback.message.chat.id,'Комманда не работает')
 
